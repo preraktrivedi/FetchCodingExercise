@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">FetchCodingExercise</string>
+    <string name="btn_done">Done</string>
+    <string name="text_list_id">List ID: %s</string>
+</resources>
