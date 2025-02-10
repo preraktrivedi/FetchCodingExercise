@@ -20,4 +20,4 @@
 - Build + Run app (clean if needed)
 
 ## Walkthrough
-TBD
+![GIF](/ezgif-3b6866bda12418.gif)
