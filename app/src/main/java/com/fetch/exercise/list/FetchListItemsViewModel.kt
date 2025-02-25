@@ -17,6 +17,7 @@ class FetchListItemsViewModel: ViewModel() {
 
     // Created this UI model class as a transform to guard from API definition changes
     data class UiModel(
+        val id: Long = -1,
         val name: String,
         val listIdentifier: String,
         val navId: Long = -1,
@@ -40,8 +41,8 @@ class FetchListItemsViewModel: ViewModel() {
         fetchItems()
     }
 
-    fun fetchItems() {
-        fetchItemsRepo.getHiringList().onEach {
+    fun fetchItems(useCache: Boolean = false) {
+        fetchItemsRepo.getHiringList(useCache).onEach {
             Log.d(TAG, "Received ${it.size} items from network")
             val uiItemList = sanitizeResponse(it).toUiModel()
             Log.d(TAG, "Converted ${uiItemList.size} items to UI model")
@@ -63,17 +64,24 @@ class FetchListItemsViewModel: ViewModel() {
      *     - Filter out any items where "name" is blank or null
      */
     private fun sanitizeResponse(rawList: ItemCollection): ItemCollection {
-        val listAfterEmptyFilter = rawList.filter { it.name?.isNotEmpty() == true }
+        val listAfterEmptyFilter = rawList
+            .filter { it.name?.isNotEmpty() == true }
         Log.d(TAG, "List count after empty list filtered: ${listAfterEmptyFilter.size}")
         return listAfterEmptyFilter.sortedWith(compareBy({it.listId}, {it.name}))
     }
 
     private fun ItemCollection.toUiModel() = map {
         UiModel(
+            id = it.id,
             name = it.name ?: error("Name was null"),
             listIdentifier = it.listId.toString(),
             navId = it.id,
         )
+    }
+
+    fun onDeleteItem(id: Long) {
+        fetchItemsRepo.updateDeletion(id)
+        fetchItems(useCache = true)
     }
 
     companion object {

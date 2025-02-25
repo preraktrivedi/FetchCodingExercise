@@ -5,9 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,7 +35,9 @@ fun FetchItemsListScreen(
     val uiState = vm.uiState.collectAsStateWithLifecycle().value
     when {
         uiState.errorMsg?.isNotEmpty() == true -> EmptyView(uiState.errorMsg)
-        else -> ListItemsView(uiState.itemsList, onNavigateToItem)
+        else -> ListItemsView(uiState.itemsList, onNavigateToItem, onDeleteRequested = { id ->
+            vm.onDeleteItem(id)
+        })
     }
 }
 
@@ -40,6 +45,7 @@ fun FetchItemsListScreen(
 fun ListItemsView(
     itemsList: List<FetchListItemsViewModel.UiModel>,
     onNavigateToItem: (Long) -> Unit,
+    onDeleteRequested: (id: Long) -> Unit
 ) {
     val listState = rememberLazyListState()
     LazyColumn(
@@ -47,10 +53,13 @@ fun ListItemsView(
         modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(bottom = 100.dp),
     ) {
-        items(itemsList) { item ->
-            SingleListItem(details = item) { itemId ->
-                onNavigateToItem(itemId)
-            }
+        items(itemsList, key = { it.id }) { item ->
+            SingleListItem(details = item,
+                onClick = { itemId ->
+                    onNavigateToItem(itemId)
+                },
+                onDeleteRequested = onDeleteRequested,
+            )
         }
     }
 }
@@ -58,7 +67,8 @@ fun ListItemsView(
 @Composable
 fun SingleListItem(
     details: FetchListItemsViewModel.UiModel,
-    onClick: (navId: Long) -> Unit
+    onClick: (navId: Long) -> Unit,
+    onDeleteRequested: (id: Long) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -77,6 +87,13 @@ fun SingleListItem(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.secondary,
         )
+        androidx.compose.material3.Icon(
+            imageVector = Icons.Filled.Delete,
+            contentDescription = stringResource(R.string.cd_delete),
+            modifier = Modifier.size(44.dp).clickable {
+                onDeleteRequested(details.id)
+            }
+        )
         HorizontalDivider(color = Color.LightGray)
     }
 }
@@ -93,7 +110,7 @@ fun ListItemsPreview() {
                 name = "Item $i"
             ))
         }
-        ListItemsView(itemsList = sampleList) {
+        ListItemsView(itemsList = sampleList, {}) {
             // Do nothing
         }
     }

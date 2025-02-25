@@ -21,15 +21,21 @@ class FetchItemsRepo private constructor(
     private val dispatcher: CoroutineDispatcher,
 ) {
 
+    private val deletedItemsSet = mutableSetOf<Long>()
     private var rawItemsList: ItemCollection = emptyList()
 
-    fun getHiringList(): Flow<ItemCollection> = flow {
-        val items: ItemCollection = networkDataSource.fetchItems().getOrElse { ex ->
-            Log.e(TAG, "Error fetching items from network: ${ex.message}")
-            emptyList()
+    fun getHiringList(useCache: Boolean = false): Flow<ItemCollection> = flow {
+        val items: ItemCollection = if (useCache) {
+            rawItemsList
+        } else {
+            networkDataSource.fetchItems().getOrElse { ex ->
+                Log.e(TAG, "Error fetching items from network: ${ex.message}")
+                emptyList()
+            }
         }
-        Log.d(TAG, "Item Count: ${items.size}")
-        rawItemsList = items
+        Log.d(TAG, "deletedItemsSet: $deletedItemsSet")
+        rawItemsList = items.filterNot { deletedItemsSet.contains(it.id) }
+        Log.d(TAG, "Item Count: ${rawItemsList.size}")
         emit(items)
     }.flowOn(dispatcher)
 
@@ -37,6 +43,12 @@ class FetchItemsRepo private constructor(
         Log.d(TAG, "Finding $itemId in rawItemsList, count: ${rawItemsList.size}")
         emit(rawItemsList.find { it.id == itemId })
     }.flowOn(dispatcher)
+
+    fun updateDeletion(id: Long) {
+        Log.d("FETCH", "Delete item: $id")
+        // Todo add an observer or make this reactive
+        deletedItemsSet.add(id)
+    }
 
     companion object {
         private const val TAG = "FetchItemsRepo"
